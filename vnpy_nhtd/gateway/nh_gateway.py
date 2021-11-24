@@ -32,7 +32,7 @@ from vnpy.trader.utility import get_folder_path
 from vnpy.trader.event import EVENT_TIMER
 from vnpy.event import Event
 
-from vnnh.api.nh import MdApi, FuturesTdApi, StockTdApi
+from ..api import MdApi, FuturesTdApi, StockTdApi
 
 from .futures_constant import (
     THOST_FTDC_OAS_Submitted,
