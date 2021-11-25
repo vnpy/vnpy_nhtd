@@ -1,5 +1,4 @@
 import sys
-from tkinter.constants import E
 import pytz
 from datetime import datetime
 from time import sleep
@@ -370,7 +369,7 @@ class NhMdApi(MdApi):
         self.userid = userid
         self.password = password
 
-        # 如果没有链家，就先发起连接
+        # 如果没有连接，就先发起连接
         if not self.connect_status:
             self.createMdApi()
             self.registerFront(address)
@@ -433,10 +432,6 @@ class NhMdApi(MdApi):
         """服务器连接断开回报"""
         self.login_status = False
         self.gateway.write_log("行情服务器连接断开")
-
-    def onHeartBeatWarning(self, timeLapse: int) -> None:
-        """"""
-        pass
 
     def onRspError(self, error: dict, reqid: int) -> None:
         """请求报错回报"""
@@ -512,27 +507,11 @@ class NhMdApi(MdApi):
             msg: str = f"行情服务器登录失败，错误信息{data['response_string']}"
             self.gateway.write_log(msg)
 
-    def onRspUtpLogout(self, data: dict, reqid: int) -> None:
-        """"""
-        pass
-
     def onRspSubscribe(self, data: dict, reqid: int) -> None:
         """订阅行情回报"""
         if data["response_code"]:
             msg: str = f"行情订阅失败，错误信息{data['response_string']}"
             self.gateway.write_log(msg)
-
-    def onRspUnSubscribe(self, data: dict, reqid: int) -> None:
-        """"""
-        pass
-
-    def onRspQryExchange(self, data: dict, reqid: int) -> None:
-        """"""
-        pass
-
-    def onRspQryInstrument(self, data: dict, reqid: int) -> None:
-        """"""
-        pass
 
 
 class NhFuturesTdApi(FuturesTdApi):
@@ -636,10 +615,6 @@ class NhFuturesTdApi(FuturesTdApi):
     def onRspOrderAction(self, data: dict, error: dict, reqid: int, last: bool) -> None:
         """委托撤单失败回报"""
         self.gateway.write_error("交易撤单失败", error)
-
-    def onRspQueryMaxOrderVolume(self, data: dict, error: dict, reqid: int, last: bool):
-        """"""
-        pass
 
     def onRspSettlementInfoConfirm(self, data: dict, error: dict, reqid: int, last: bool) -> None:
         """确认结算单回报"""
@@ -1023,7 +998,6 @@ class NhStockTdApi(StockTdApi):
         self.gateway_name: str = gateway.gateway_name
 
         self.reqid: int = 0
-        # self.order_ref = 0
 
         prefix: str = datetime.now().strftime("%H%M%S0000")
         self.order_ref: int = int(prefix)
@@ -1242,14 +1216,6 @@ class NhStockTdApi(StockTdApi):
         self.login_status = False
         self.gateway.write_log(f"交易服务器连接断开，原因{reqid}")
 
-    def onHeartBeatWarning(self, reqid: int) -> None:
-        """"""
-        pass
-
-    def onRspSubscribeTopic(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
-
     def onRspUserLogin(self, data: dict, error: dict, reqid: int, last: bool) -> None:
         """用户登录请求回报"""
         if not error["ErrorID"]:
@@ -1259,28 +1225,11 @@ class NhStockTdApi(StockTdApi):
             self.order_ref: int = max(self.order_ref, data["MaxClOrdID"])
             self.today_date: str = data["TradingDay"]
 
-            # self.query_instrument()
             self.instrument_countdown: int = 10
             self.gateway.event_engine.register(EVENT_TIMER, self.query_instrument)
         else:
             self.login_failed = True
             self.gateway.write_error("交易服务器登录失败", error)
-
-    def onRspUserLogout(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
-
-    def onRspUserPasswordUpdate(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
-
-    def onRspStockInsert(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
-
-    def onRspStockCancel(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
 
     def onRspOptionsInsert(self, data: dict, error: dict, reqid: int, last: bool) -> None:
         """委托下单失败回报"""
@@ -1296,22 +1245,6 @@ class NhStockTdApi(StockTdApi):
         """委托撤单失败回报"""
         if error["ErrorID"]:
             self.gateway.write_error("交易撤单失败", error)
-
-    def onRspQuoteInsert(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
-
-    def onRspForQuote(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
-
-    def onRspQuoteCancel(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
-
-    def onRspStockLock(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
 
     def onRspExercise(self, data: dict, error: dict, reqid: int, last: bool) -> None:
         """委托行权回报"""
@@ -1355,28 +1288,9 @@ class NhStockTdApi(StockTdApi):
             account.available = data["Available"]
             self.gateway.on_account(account)
 
-    def onRspQryStockOrder(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
-
-    def onRspQryOptionsOrder(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
-
-    def onRspQryQuoteOrder(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
-
-    def onRspQryStockTrade(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
-
-    def onRspQryOptionsTrade(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
-
     def onRspQryPosition(self, data: dict, error: dict, reqid: int, last: bool) -> None:
         """持仓查询回报"""
+        
         # 必须已经收到了合约信息后才能处理
         if data["SecurityID"] in symbol_exchange_map:
             size = symbol_size_map[data["SecurityID"]]
@@ -1393,14 +1307,6 @@ class NhStockTdApi(StockTdApi):
             )
 
             self.gateway.on_position(position)
-
-    def onRspQryTopic(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
-
-    def onRspQryStock(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
 
     def onRspQryOptions(self, data: dict, error: dict, reqid: int, last: bool) -> None:
         """合约查询回报"""
@@ -1483,14 +1389,6 @@ class NhStockTdApi(StockTdApi):
         )
         self.gateway.on_order(order)
 
-    def onRtnStockOrder(self, data: dict) -> None:
-        """"""
-        pass
-
-    def onRtnQuoteOrder(self, data: dict) -> None:
-        """"""
-        pass
-
     def onRtnOptionsTrade(self, data: dict) -> None:
         """成交更新推送"""
         if not self.contract_inited:
@@ -1519,10 +1417,6 @@ class NhStockTdApi(StockTdApi):
         )
         self.gateway.on_trade(trade)
 
-    def onRtnStockTrade(self, data: dict) -> None:
-        """"""
-        pass
-
     def onRtnExercise(self, data: dict) -> None:
         """行权更新推送"""
         exercise: dict = {
@@ -1532,25 +1426,6 @@ class NhStockTdApi(StockTdApi):
             "leg1_symbol": data["SecurityID"],
         }
         self.gateway.on_event(EVENT_NH_EXERCISE, exercise)
-
-    def onRspQryRate(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
-
-    def onRspQryClient(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
-        # if data["PartyID"]:
-        #     self.party_id = data["PartyID"]
-
-        # if last:
-        #     self.gateway.write_log("投资者账户查询成功")
-
-        #     self.query_instrument()
-
-    def onRspQryClientMargin(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
 
     def onRspQryExercise(self, data: dict, error: dict, reqid: int, last: bool) -> None:
         """行权记录查询回报"""
@@ -1567,22 +1442,6 @@ class NhStockTdApi(StockTdApi):
                 "leg1_symbol": data["SecurityID"],
             }
             self.gateway.on_event(EVENT_NH_EXERCISE, exercise)
-
-    def onRtnWithdrawDeposit(self, data: dict) -> None:
-        """"""
-        pass
-
-    def onRspMarginCombAction(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
-
-    def onRtnMarginCombAction(self, data: dict) -> None:
-        """"""
-        pass
-
-    def onRspQrySseCombPosition(self, data: dict, error: dict, reqid: int, last: bool) -> None:
-        """"""
-        pass
 
     def onRspCombExercise(self, data: dict, error: dict, reqid: int, last: bool) -> None:
         """组合行权回报"""
