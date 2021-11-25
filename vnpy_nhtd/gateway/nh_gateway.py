@@ -227,6 +227,10 @@ class NhGateway(BaseGateway):
         "行情服务器": "",
         "产品代码": "",
         "授权码": "",
+        "开发者编码": "",
+        "开发者授权": "",
+        "行情服务器登录用户": "",
+        "行情服务器登录密码": ""
     }
 
     def __init__(self, event_engine: EventEngine, td_class: Any, gateway_name: str) -> None:
@@ -245,6 +249,10 @@ class NhGateway(BaseGateway):
         md_address: str = setting["行情服务器"]
         appid: str = setting["产品代码"]
         auth_code: str = setting["授权码"]
+        code: str = setting["开发者编码"]
+        license: str = setting["开发者授权"]
+        md_userid: str = setting["行情服务器登录用户"]
+        md_password: str = setting["行情服务器登录密码"]
 
         if not td_address.startswith("tcp://"):
             td_address = "tcp://" + td_address
@@ -253,7 +261,7 @@ class NhGateway(BaseGateway):
             md_address = "tcp://" + md_address
 
         self.td_api.connect(td_address, userid, password, party_id, appid, auth_code)
-        self.md_api.connect(md_address, userid, password)
+        self.md_api.connect(md_address, md_userid, md_password, code, license)
 
         self.init_query()
 
@@ -361,13 +369,17 @@ class NhMdApi(MdApi):
 
         self.userid: str = ""
         self.password: str = ""
+        self.code: str = "xuwanxin"
+        self.license: str = "xwx123"
 
         self.current_date: str = datetime.now().strftime("%Y%m%d")
 
-    def connect(self, address: str, userid: str, password: str) -> None:
+    def connect(self, address: str, userid: str, password: str, code: str, license: str) -> None:
         """连接服务器"""
         self.userid = userid
         self.password = password
+        self.code = code
+        self.license = license
 
         # 如果没有连接，就先发起连接
         if not self.connect_status:
@@ -384,12 +396,10 @@ class NhMdApi(MdApi):
     def login(self) -> None:
         """用户登录"""
         req: dict = {
-            "developer_code": "xuwanxin",
-            "developer_license": "xwx123",
-            # "user_id": self.userid,
-            # "user_password": self.password,
-            "user_id": "xwx",
-            "user_password": "123456",
+            "developer_code": self.code,
+            "developer_license": self.license,
+            "user_id": self.userid,
+            "user_password": self.password,
         }
         self.reqid += 1
         self.reqUtpLogin(req, self.reqid)
@@ -1290,7 +1300,7 @@ class NhStockTdApi(StockTdApi):
 
     def onRspQryPosition(self, data: dict, error: dict, reqid: int, last: bool) -> None:
         """持仓查询回报"""
-        
+
         # 必须已经收到了合约信息后才能处理
         if data["SecurityID"] in symbol_exchange_map:
             size = symbol_size_map[data["SecurityID"]]
