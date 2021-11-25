@@ -209,9 +209,7 @@ OPTIONTYPE_STOCK2VT:Dict[str, OptionType] = {
 }
 
 # 合约数据全局缓存字典
-symbol_exchange_map = {}
-symbol_name_map = {}
-symbol_size_map = {}
+symbol_contract_map: Dict[str, ContractData] = {}
 
 
 class NhGateway(BaseGateway):
@@ -452,9 +450,9 @@ class NhMdApi(MdApi):
         """订阅行情回报"""
         symbol: str = data["instrument_id"]
 
-        if symbol not in symbol_exchange_map:
+        contract: ContractData = symbol_contract_map.get(symbol, None)
+        if not contract:
             return
-        exchange: str = symbol_exchange_map.get(symbol)
 
         timestamp: str = f"{self.current_date} {data['update_time']}.{int(data['update_millisec']/100)}"
         dt: datetime = datetime.strptime(timestamp, "%Y%m%d %H:%M:%S.%f")
@@ -462,9 +460,9 @@ class NhMdApi(MdApi):
 
         tick: TickData = TickData(
             symbol=symbol,
-            exchange=exchange,
+            exchange=contract.exchange,
             datetime=dt,
-            name=symbol_name_map.get(symbol, ""),
+            name=contract.name,
             volume=data["volume"],
             open_interest=data["open_interest"],
             last_price=data["last_price"],
@@ -605,11 +603,11 @@ class NhFuturesTdApi(FuturesTdApi):
         orderid: str = f"{self.frontid}_{self.sessionid}_{order_ref}"
 
         symbol: str = data["InstrumentID"]
-        exchange = symbol_exchange_map[symbol]
+        contract: ContractData = symbol_contract_map[symbol]
 
         order: OrderData = OrderData(
             symbol=symbol,
-            exchange=exchange,
+            exchange=contract.exchange,
             orderid=orderid,
             direction=DIRECTION_FUTURES2VT[data["Direction"]],
             offset=OFFSET_FUTURES2VT.get(data["CombOffsetFlag"], Offset.NONE),
@@ -645,14 +643,17 @@ class NhFuturesTdApi(FuturesTdApi):
             return
 
         # 必须已经收到了合约信息后才能处理
-        if data["InstrumentID"] in symbol_exchange_map:
+        symbol: str = data["InstrumentID"]
+        contract: ContractData = symbol_contract_map.get(symbol, None)
+
+        if contract:
             # 获取之前缓存的持仓数据缓存
             key: str = f"{data['InstrumentID'], data['PosiDirection']}"
             position: PositionData = self.positions.get(key, None)
             if not position:
                 position: PositionData = PositionData(
                     symbol=data["InstrumentID"],
-                    exchange=symbol_exchange_map[data["InstrumentID"]],
+                    exchange=contract.exchange,
                     direction=DIRECTION_FUTURES2VT[data["PosiDirection"]],
                     gateway_name=self.gateway_name
                 )
@@ -667,7 +668,7 @@ class NhFuturesTdApi(FuturesTdApi):
                 position.yd_volume = data["Position"] - data["TodayPosition"]
 
             # 获取合约的乘数信息
-            size: int = symbol_size_map.get(position.symbol, 0)
+            size: int = contract.size
 
             # 计算之前已有仓位的持仓总成本
             cost: float = position.price * position.volume * size
@@ -737,9 +738,7 @@ class NhFuturesTdApi(FuturesTdApi):
 
             self.gateway.on_contract(contract)
 
-            symbol_exchange_map[contract.symbol] = contract.exchange
-            symbol_name_map[contract.symbol] = contract.name
-            symbol_size_map[contract.symbol] = contract.size
+            symbol_contract_map[contract.symbol] = contract
 
         if last:
             self.contract_inited = True
@@ -760,7 +759,7 @@ class NhFuturesTdApi(FuturesTdApi):
             return
 
         symbol: str = data["InstrumentID"]
-        exchange = symbol_exchange_map[symbol]
+        contract: ContractData = symbol_contract_map[symbol]
 
         frontid: int = data["FrontID"]
         sessionid: int = data["SessionID"]
@@ -773,7 +772,7 @@ class NhFuturesTdApi(FuturesTdApi):
 
         order: OrderData = OrderData(
             symbol=symbol,
-            exchange=exchange,
+            exchange=contract.exchange,
             orderid=orderid,
             type=ORDERTYPE_FUTURES2VT[data["OrderPriceType"]],
             direction=DIRECTION_FUTURES2VT[data["Direction"]],
@@ -796,7 +795,7 @@ class NhFuturesTdApi(FuturesTdApi):
             return
 
         symbol: str = data["InstrumentID"]
-        exchange = symbol_exchange_map[symbol]
+        contract: ContractData = symbol_contract_map[symbol]
 
         orderid: str = self.sysid_orderid_map[data["OrderSysID"]]
 
@@ -806,7 +805,7 @@ class NhFuturesTdApi(FuturesTdApi):
 
         trade: TradeData = TradeData(
             symbol=symbol,
-            exchange=exchange,
+            exchange=contract.exchange,
             orderid=orderid,
             tradeid=data["TradeID"],
             direction=DIRECTION_FUTURES2VT[data["Direction"]],
@@ -980,7 +979,7 @@ class NhFuturesTdApi(FuturesTdApi):
 
     def query_position(self) -> None:
         """查询持仓"""
-        if not symbol_exchange_map:
+        if not symbol_contract_map:
             return
 
         req: dict = {
@@ -1302,13 +1301,16 @@ class NhStockTdApi(StockTdApi):
         """持仓查询回报"""
 
         # 必须已经收到了合约信息后才能处理
-        if data["SecurityID"] in symbol_exchange_map:
-            size = symbol_size_map[data["SecurityID"]]
+        symbol: str = data["SecurityID"]
+        contract: ContractData = symbol_contract_map.get(symbol, None)
+
+        if contract:
+            size: int = contract.size
             price: float = data["PositionCost"] / (data["Position"] * size)
 
             position: PositionData = PositionData(
                 symbol=data["SecurityID"],
-                exchange=symbol_exchange_map[data["SecurityID"]],
+                exchange=contract.exchange,
                 direction=DIRECTION_STOCK2VT[data["Side"]],
                 volume=data["Position"],
                 yd_volume=data["YdPosition"],
@@ -1348,9 +1350,7 @@ class NhStockTdApi(StockTdApi):
 
             self.gateway.on_contract(contract)
 
-            symbol_exchange_map[contract.symbol] = contract.exchange
-            symbol_name_map[contract.symbol] = contract.name
-            symbol_size_map[contract.symbol] = contract.size
+            symbol_contract_map[contract.symbol] = contract
 
         if last:
             self.contract_inited = True
@@ -1371,7 +1371,7 @@ class NhStockTdApi(StockTdApi):
             return
 
         symbol: str = data["SecurityID"]
-        exchange = symbol_exchange_map[symbol]
+        contract: ContractData = symbol_contract_map[symbol]
         orderid: str = str(data["ClOrdID"])
 
         if orderid not in self.orders:
@@ -1385,7 +1385,7 @@ class NhStockTdApi(StockTdApi):
 
         order: OrderData = OrderData(
             symbol=symbol,
-            exchange=exchange,
+            exchange=contract.exchange,
             orderid=orderid,
             type=order_type,
             direction=DIRECTION_STOCK2VT[data["Side"]],
@@ -1406,7 +1406,7 @@ class NhStockTdApi(StockTdApi):
             return
 
         symbol: str = data["SecurityID"]
-        exchange = symbol_exchange_map[symbol]
+        contract: ContractData = symbol_contract_map[symbol]
         orderid: str = str(data["ClOrdID"])
 
         timestamp: str = f"{self.today_date} {data['TransactTimeOnly']}"
@@ -1415,7 +1415,7 @@ class NhStockTdApi(StockTdApi):
 
         trade: TradeData = TradeData(
             symbol=symbol,
-            exchange=exchange,
+            exchange=contract.exchange,
             orderid=orderid,
             tradeid=data["ExecID"],
             direction=DIRECTION_STOCK2VT[data["Side"]],
