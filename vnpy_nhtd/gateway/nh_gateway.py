@@ -183,7 +183,7 @@ OFFSET_STOCK2VT: Dict[str, Offset] = {
     SZSE_FTDC_OC_Open: Offset.OPEN,
     SZSE_FTDC_OC_Close: Offset.CLOSE
 }
-OFFSET_VT2STOCK: Dict[Offset, str]  = {v: k for k, v in OFFSET_STOCK2VT.items()}
+OFFSET_VT2STOCK: Dict[Offset, str] = {v: k for k, v in OFFSET_STOCK2VT.items()}
 
 # 行情交易所映射
 EXCHANGE_MD2VT: Dict[str, Exchange] = {
@@ -203,7 +203,7 @@ EXCHANGE_VT2MD: Dict[Exchange, str] = {
 }
 
 # 期权类型映射
-OPTIONTYPE_STOCK2VT:Dict[str, OptionType] = {
+OPTIONTYPE_STOCK2VT: Dict[str, OptionType] = {
     SZSE_FTDC_CallOrPut_E: OptionType.CALL,
     SZSE_FTDC_CallOrPut_A: OptionType.PUT
 }
