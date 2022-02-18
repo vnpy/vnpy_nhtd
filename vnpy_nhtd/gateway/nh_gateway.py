@@ -217,6 +217,8 @@ class NhGateway(BaseGateway):
     vn.py用于对接南华期货的交易接口。
     """
 
+    default_name: str = "NHTD"
+
     default_setting: Dict[str, str] = {
         "用户名": "",
         "密码": "",
@@ -333,20 +335,24 @@ class NhGateway(BaseGateway):
 
 class NhFuturesGateway(NhGateway):
 
+    default_name: str = "NHFUTURES"
+
     exchanges: List[str] = list(EXCHANGE_FUTURES2VT.values())
 
-    def __init__(self, event_engine) -> None:
+    def __init__(self, event_engine: EventEngine, gateway_name: str) -> None:
         """构造函数"""
-        super().__init__(event_engine, NhFuturesTdApi, "NHFUTURES")
+        super().__init__(event_engine, NhFuturesTdApi, gateway_name)
 
 
 class NhStockGateway(NhGateway):
 
+    default_name: str = "NHSTOCK"
+
     exchanges: List[str] = [Exchange.SSE, Exchange.SZSE]
 
-    def __init__(self, event_engine) -> None:
+    def __init__(self, event_engine: EventEngine, gateway_name: str) -> None:
         """构造函数"""
-        super().__init__(event_engine, NhStockTdApi, "NHSTOCK")
+        super().__init__(event_engine, NhStockTdApi, gateway_name)
 
 
 class NhMdApi(MdApi):
