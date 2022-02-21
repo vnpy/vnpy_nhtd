@@ -214,7 +214,7 @@ symbol_contract_map: Dict[str, ContractData] = {}
 
 class NhGateway(BaseGateway):
     """
-    vn.py用于对接南华期货的交易接口。
+    VeighNa用于对接南华期货的交易接口。
     """
 
     default_name: str = "NHTD"
